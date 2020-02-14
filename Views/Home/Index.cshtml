@@ -1,0 +1,184 @@
+﻿@{
+    ViewData["Title"] = "Tinymce 集成";
+}
+<div class="mb-5">
+    <textarea id="Body"></textarea>
+</div>
+<div class="card" style="width:300px;">
+    <div class="card-header text-center">
+        图片
+    </div>
+    <div class="card-body">
+        <input type="text" class="form-control" id="ImageUrl" />
+    </div>
+    <div class="card-footer">
+        <button type="button" class="btn btn-info btn-block" id="btnImageUrl">
+            <i class="iconfont icon-upload"></i> 上传图片
+        </button>
+    </div>
+</div>
+
+@section footer{
+    <script src="~/plugins/tinymce5/tinymce.min.js"></script>
+
+    <script>
+
+        function SetThumbnail(fileUrl) {
+            $('#imgImageUrl').attr("src", fileUrl);
+            $('#ImageUrl').val(fileUrl);
+        }
+        $(function () {
+
+
+            $("#btnImageUrl").on("click", function () {
+                QNZ.selectActionFunction = SetThumbnail;
+                QNZ.open();
+
+            });
+
+        });
+
+        var QNZ = {
+            ImagesUploadHandler: function (blobInfo, success, failure) {
+                var xhr, formData;
+
+                xhr = new XMLHttpRequest();
+                xhr.withCredentials = false;
+                xhr.open('POST', '/QNZFinder/ImageUpload');
+
+                xhr.onload = function () {
+                    var json;
+
+                    if (xhr.status != 200) {
+                        failure('HTTP Error: ' + xhr.status);
+                        return;
+                    }
+
+                    json = JSON.parse(xhr.responseText);
+
+                    if (!json || typeof json.location != 'string') {
+                        failure('Invalid JSON: ' + xhr.responseText);
+                        return;
+                    }
+
+                    success(json.location);
+                };
+
+
+                var description = '';
+
+                jQuery(tinymce.activeEditor.dom.getRoot()).find('img').not('.loaded-before').each(
+                    function () {
+                        description = $(this).attr("alt");
+                        $(this).addClass('loaded-before');
+                    });
+
+                formData = new FormData();
+                formData.append('file', blobInfo.blob(), blobInfo.filename());
+                formData.append('description', description); //found now))
+
+                xhr.send(formData);
+            },
+
+
+            percent: 70,
+            baseUrl: "/QNZFinder/SingleFinder",
+            selectActionFunction: null,
+            elFinderCallback: function (fileUrl) {
+                this.selectActionFunction(fileUrl);
+            },
+            open: function () {
+                var w = 1140,
+                    h = 600; // default sizes
+                if (window.screen) {
+                    w = window.screen.width * this.percent / 100;
+                    h = window.screen.height * this.percent / 100;
+                }
+                var x = screen.width / 2 - w / 2;
+                var y = screen.height / 2 - h / 2;
+
+                window.open(this.baseUrl, "_blank", 'height=' + h + ',width=' + w + ',left=' + x + ',top=' + y);
+            },
+
+            FilePickerCallback2: function (callback, value, meta) {
+                // Provide file and text for the link dialog
+                // if (meta.filetype == 'file') {
+                //   callback('mypage.html', {text: 'My text'});
+                // }
+
+                // // Provide image and alt text for the image dialog
+                //if (meta.filetype == 'image') {
+
+                //   callback('myimage.jpg', {alt: 'My alt text'});
+                // }
+
+                // // Provide alternative source and posted for the media dialog
+                // if (meta.filetype == 'media') {
+                //   callback('movie.mp4', {source2: 'alt.ogg', poster: 'image.jpg'});
+                // }
+                var finderUrl = '/QNZFinder/FinderForTinyMce';
+                tinyMCE.activeEditor.windowManager.openUrl({
+                    url: finderUrl,
+                    title: 'QNZFinder 1.0 文件管理',
+                    width: 1140,
+                    height: 700
+                    // onMessage: function (api, data) {
+                    //     if (data.mceAction === 'FileSelected') {
+                    //        callback(data.url);
+                    //        api.close();
+                    //    }
+                    //}
+                });
+
+                window.addEventListener('message', function (event) {
+                    var data = event.data;
+                    callback(data.content);
+                });
+
+            }
+
+        };
+
+
+
+        tinymce.init({
+            selector: '#Body',  // change this value according to your HTML
+            height: 400,
+            language: 'zh_CN',
+
+            convert_urls: false,
+            //extended_valid_elements: 'span,i[class]',
+            valid_children: 'a[p|span|div|strong|i]',
+            valid_elements: "*[*]",
+            //picture manager
+            file_picker_callback: QNZ.FilePickerCallback2,   //from plugin FileManager.js
+            images_upload_handler: QNZ.ImagesUploadHandler,
+            plugins: 'print preview acecode importcss  searchreplace autolink autosave save directionality  visualblocks visualchars fullscreen image link media  template codesample table charmap hr pagebreak nonbreaking anchor toc insertdatetime advlist lists  wordcount   imagetools textpattern noneditable help     charmap   quickbars  emoticons',
+
+            toolbar: 'undo redo | bold italic underline strikethrough | fontselect fontsizeselect formatselect | alignleft aligncenter alignright alignjustify | outdent indent |  numlist bullist checklist | forecolor backcolor casechange permanentpen formatpainter removeformat | pagebreak | charmap emoticons | fullscreen  preview save print | insertfile image media pageembed template link anchor codesample | a11ycheck ltr rtl | showcomments addcomment acecode',
+
+            autosave_ask_before_unload: true,
+            autosave_interval: "30s",
+            autosave_prefix: "{path}{query}-{id}-",
+            autosave_restore_when_empty: false,
+            autosave_retention: "2m",
+
+            image_advtab: true,
+            importcss_append: true,
+            image_caption: true,
+            templates: [
+                { title: '新表格', description: 'creates a new table', content: '<div class="mceTmpl"><table width="98%%"  border="0" cellspacing="0" cellpadding="0"><tr><th scope="col"> </th><th scope="col"> </th></tr><tr><td> </td><td> </td></tr></table></div>' },
+                { title: '文章样式', description: 'A cure for writers block', content: 'Once upon a time...' },
+                { title: '列表样式', description: 'New List with dates', content: '<div class="mceTmpl"><span class="cdate">cdate</span><br /><span class="mdate">mdate</span><h2>My List</h2><ul><li></li><li></li></ul></div>' }
+            ],
+
+
+
+        });
+
+
+
+
+    </script>
+
+}

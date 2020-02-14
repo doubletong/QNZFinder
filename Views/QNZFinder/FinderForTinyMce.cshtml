@@ -1,0 +1,92 @@
+﻿@using Microsoft.Extensions.Configuration;
+@inject IConfiguration config;
+@{
+    Layout = null;
+    var _rootDirectory = config.GetValue<string>("QNZFinder:RootDirectory");
+
+}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset=utf-8>
+    <meta http-equiv=X-UA-Compatible content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="~/plugins/QNZFinder/font/iconfont.css" rel="stylesheet" />
+    <link href="~/plugins/toastr/toastr.min.css" rel="stylesheet" />
+    <link href="~/plugins/QNZFinder/QNZFinder.min.css" rel="stylesheet" />
+    <link href="~/plugins/dropzone/min/dropzone.min.css" rel="stylesheet" />
+    <title>QNZFinder</title>
+
+</head>
+<body>
+
+
+    <partial name="_QNZFinder" />
+
+
+    <footer class="text-right tinymce-footer">
+        <small>注：双击选取文件</small>
+    </footer>
+
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/plugins/toastr/toastr.min.js"></script>
+    <script src="/Plugins/QNZFinder/FileManager.js"></script>
+    <script src="~/plugins/dropzone/min/dropzone.min.js"></script>
+    <script>
+
+        
+        Dropzone.options.dropzoneForm = {
+            paramName: "file",
+            maxFilesize: 20,
+            maxFiles: 5,
+            acceptedFiles: "image/*,application/pdf",
+            dictMaxFilesExceeded: "Custom max files msg",
+            dictDefaultMessage: "拖拽文件到这里上传",        
+            queuecomplete: function (files) {
+                this.removeAllFiles();
+                console.log("queuecomplete");
+                document.getElementById("uploadbox").style.display = "none";
+                
+                var filePath = document.getElementById("filePath");
+                var dir = filePath.innerText; //$(this).attr("data-dir"),
+                var url = "/qnzfinder/GetSubFiles?dir=" + dir;
+                SIG.getInstance().getFiles(url);
+            }
+        };
+
+
+
+        function selectImage(fileUrl) {
+            //  console.log(fileUrl);
+
+            window.parent.postMessage({
+                mceAction: 'FileSelected',
+                content: fileUrl
+            }, '*');
+
+            parent.tinymce.activeEditor.windowManager.close();
+        }
+        $(function () {
+
+            $("body").delegate("#fileList .itembox .item", "dblclick", function (e) {
+                e.preventDefault();
+                var fileUrl = $(this).attr("data-file");
+                selectImage(fileUrl);
+
+            });
+
+
+            $("#selectImage").on("click", function () {
+                var fileUrl = $("#fileList .item.active").attr("data-file");
+                selectImage(fileUrl);
+            })
+
+
+        })
+
+
+
+    </script>
+</body>
+</html>
