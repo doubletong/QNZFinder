@@ -1,6 +1,6 @@
 ﻿/*!
  * QNZFinder - file manager for web
- * Version 1.0.2 (2020-02-15)
+ * Version 1.0.1 (2020-01-31)
  * http://heiniaozhi.cn
  *
  * Copyright 2012-2020, 黑鸟志
@@ -8,9 +8,251 @@
  */
 
 
+var SIG = (function () {
+    var instance;
+
+    //获取根目录列表
+    function getDirectories(url) {
+
+        $.getJSON(url, function (result) {
+            var lastOpenPath = localStorage.getItem('lastOpenPath');
+            var dirs = '';
+            $.each(result, function (i, item) {
+                //     console.log(item);
+                var isHidden = item.hasChildren ? "" : "hidden";
+                var isplus = item.isOpen ? "minus" : "plus";
+                dirs += '<li class="' + isplus + '">';
+                dirs += '<div class="exp"><a href="#" class="btnDir" data-loaded="1" data-path="' + item.dirPath + '" ' + isHidden + '>';
+                dirs += '<span class="iconfont icon-' + isplus + ' fa-fw"></span></a></div> ';
+                if (lastOpenPath == item.dirPath) {
+                    dirs += '<a href="#" class="btnFile active" data-path="' + item.dirPath + '"><span class="iconfont icon-folder-open-fill fa-fw"></span>' + item.name + '</a>';
+                } else {
+                    dirs += '<a href="#" class="btnFile" data-path="' + item.dirPath + '"><span class="iconfont icon-folder-fill fa-fw"></span>' + item.name + '</a>';
+                }
+
+                dirs += loadSubDirectories(item.children);
+
+                dirs += '</li > ';
+            });
+
+            $("#dirTree").html(dirs);
+
+        });
+    }
+
+
+    // 递归加载子目录
+    function loadSubDirectories(items) {
+        var lastOpenPath = localStorage.getItem('lastOpenPath');
+        var dirs = '<ul class="subTree">';
+        $.each(items, function (key, val) {
+
+            var isHidden = val.hasChildren ? "" : "hidden";
+            var isplus = val.isOpen ? "minus" : "plus";
+            dirs += '<li class="' + isplus + '">';
+            dirs += '<div class="exp"><a href="#" class="btnDir" data-loaded="1" data-path="' + val.dirPath + '" ' + isHidden + '>' +
+                '<span class="iconfont icon-plus fa-fw"></span>' +
+                '</a></div>';
+            if (lastOpenPath == val.dirPath) {
+                dirs += '<a href="#" class="btnFile active" data-path="' + val.dirPath + '"><span class="iconfont icon-folder-open-fill"></span>' + val.name + '</a>';
+            } else {
+                dirs += '<a href="#" class="btnFile" data-path="' + val.dirPath + '"><span class="iconfont icon-folder-fill"></span>' + val.name + '</a>';
+            }
+
+            dirs += loadSubDirectories(val.children);  // 递归加载
+            dirs += '</li>';
+
+        });
+        dirs += '</ul>';
+        return dirs;
+    }
+
+    //获取子目录列表
+    function getSubDirectories(url, li) {
+        li.find("ul").remove();
+        //console.log(li);
+        $.getJSON(url, function (result) {
+
+            var item = "";
+            $.each(result, function (key, val) {
+                // debugger;
+                var isHidden = val.hasChildren ? "" : "hidden";
+                item += '<li>' +
+                    '<div class="exp"><a href="#" class="btnDir" data-loaded="0" data-path="' + val.dirPath + '" ' + isHidden + '>' +
+                    '<span class="iconfont icon-plus fa-fw"></span>' +
+                    '</a></div>' +
+                    '<a href="#" class="btnFile" data-path="' + val.dirPath + '"><span class="iconfont icon-folder-fill"></span>' + val.name + '</a>' +
+                    '</li>';
+
+            });
+
+            $('<ul/>', { html: item }).addClass("subTree").appendTo(li);
+
+            li.children(".exp").find("a").attr("data-loaded", "1").find("span").removeClass("icon-plus").addClass("icon-minus");
+
+        });
+    }
+
+
+
+    //获取文件列表
+    function getFiles(url) {
+        $.getJSON(url, function (result) {
+            loadFiles(result);
+        });
+    }
+
+
+    function loadFiles(result) {
+        $('#fileList').empty(); // Clear the table body.
+
+        $.each(result, function (key, val) {
+            // debugger;
+            var item = '<div class="itembox">' +
+                '<div class="qnz-card item" data-file="' + val.filePath + '" data-name="' + val.name + '">' +
+                '<div class="qnz-card-body">' +
+                '<img src="' + val.imgUrl + '" class="img-responsive" />' +
+                '</div>' +
+                '<div class="qnz-card-footer">' +
+                '<div class="filename"><span>' + val.name + '</span></div>' +
+                '<div class="date">date: ' + val.createdDate + '</div> ' +
+                '<div class="buttons">' +
+                '<div class="qnz-btn-group" role="group">' +
+                '<button type="button" class="qnz-btn rename" title="重命名"><i class="iconfont icon-edit"></i></button>' +
+                '<button type="button" class="qnz-btn download" title="下载"><i class="iconfont icon-download"></i></button>' +
+                '<button type="button" class="qnz-btn btnDelete" title="删除"><i class="iconfont icon-delete"></i></button>' +
+                '</div><div class="fileSize">' + val.fileSize + 'KB</div>' +
+                '</div>' +
+                '' +
+                '</div>' +
+                '</div>';
+            $(item).appendTo($('#fileList'));
+        });
+    };
+
+
+    //打开当前的路径
+    function loadCurrentURL(url) {
+        url = url;
+        var baseUrl = "/Uploads/";
+
+
+        if (url.startsWith(baseUrl)) {
+            var dir = url.split("/");
+            var index = url.indexOf(dir[dir.length - 1]) - 1;
+
+            var subStr = url.substring(9, index);
+            var subDir = subStr.split("/");
+            var goDir = baseUrl;
+            for (var i = 0; i < subDir.length; i++) {
+                goDir = goDir + subDir[i];
+                goDir = goDir;
+
+                var li = $("a[data-path='" + goDir + "']").eq(0).closest("li");
+
+                if (i < (subDir.length - 1)) {
+
+                    var urlDir = "/qnzfinder/GetSubDirectories?dir=" + goDir;
+                    SIG.getInstance().getSubDirectories(urlDir, li);
+                    goDir = goDir + "/";
+                } else {
+
+                    var urlDir = "/qnzfinder/GetSubFiles?dir=" + goDir;
+
+                    SIG.getInstance().getFiles(urlDir);
+                    $("#btnRefresh").attr("data-dir", goDir);
+
+                    setTimeout(function () {
+                        $("[data-path='" + goDir + "']").eq(1).addClass("active").children("span").removeClass("icon-folder-fill").addClass("icon-folder-open-fill");
+                        $("#fileList div[data-file='" + url + "']").addClass("active");
+                    }, 1000);
+
+                }
+
+
+            }
+            //alert(url.substring(9, index));
+        }
+
+    }
+
+    function renameFile(oldpath, newpath, item) {
+
+        $.ajax({
+            type: "POST",
+            contentType: "application/json",
+            url: "/qnzfinder/RenameFile?filePath=" + oldpath + "&newFilePath=" + newpath,
+            //  data: JSON.stringify({filePath: filePath }),
+            dataType: 'json',
+            success: function (result) {
+                if (result.status === 1) {
+                    // container.remove()
+                    toastr.success(result.message);
+                    item.attr("data-file", newpath);
+                    item.find(".boxfooter").children("span").text(newpath.split('/').pop());
+
+                } else {
+                    toastr.error(result.message);
+                }
+
+            }
+        });
+    }
+
+    // 初始化
+    function Initialize() {
+
+        var lastOpenPath = localStorage.getItem('lastOpenPath');
+        var url = lastOpenPath != null ? "/qnzfinder/currentdirectories?currentDir=" + lastOpenPath : "/qnzfinder/currentdirectories";
+        getDirectories(url);
+
+        var url2 = lastOpenPath != null ? "/qnzfinder/GetSubFiles?dir=" + lastOpenPath : "/qnzfinder/GetSubFiles";
+        getFiles(url2);
+
+        var tdir = lastOpenPath == null ? $("#rootDir").val() : lastOpenPath;
+
+        setCurrentFilePath(tdir);
+
+    }
+
+    // 设置当前目录
+    function setCurrentFilePath(filePath) {
+
+        var elFilePath = document.getElementById("filePath");
+        elFilePath.innerText = filePath;
+
+        var elFilePath2 = document.getElementById("filePathForm");
+        elFilePath2.value = filePath;
+    }
+
+
+
+
+    function createInstance() {
+        return {
+            Initialize: Initialize,
+            getFiles: getFiles,
+            getSubDirectories: getSubDirectories,
+            getDirectories: getDirectories,
+            renameFile: renameFile,
+            loadCurrentURL: loadCurrentURL,
+            setCurrentFilePath: setCurrentFilePath
+        }
+    }
+    return {
+        getInstance: function () {
+            return instance || (instance = createInstance());
+        }
+    }
+
+}());
+
 
 //右键菜单
-var QNZCM = {
+(function () {
+
+    "use strict";
+
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
     //
@@ -27,7 +269,7 @@ var QNZCM = {
      * @param {String} className The class name to check against
      * @return {Boolean}
      */
-    clickInsideElement: function (e, className) {
+    function clickInsideElement(e, className) {
         var el = e.srcElement || e.target;
 
         if (el.classList.contains(className)) {
@@ -41,7 +283,7 @@ var QNZCM = {
         }
 
         return false;
-    },
+    }
 
     /**
      * Get's exact position of event.
@@ -49,7 +291,7 @@ var QNZCM = {
      * @param {Object} e The event passed in
      * @return {Object} Returns the x and y position
      */
-    getPosition: function (e) {
+    function getPosition(e) {
         var posx = 0;
         var posy = 0;
 
@@ -67,7 +309,7 @@ var QNZCM = {
             x: posx,
             y: posy
         }
-    },
+    }
 
     //////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////
@@ -80,169 +322,154 @@ var QNZCM = {
     /**
      * Variables.
      */
-    contextMenuClassName: "context-menu",
-    contextMenuItemClassName: "context-menu__item",
-    contextMenuLinkClassName: "context-menu__link",
-    contextMenuActive: "context-menu--active",
+    var contextMenuClassName = "context-menu";
+    var contextMenuItemClassName = "context-menu__item";
+    var contextMenuLinkClassName = "context-menu__link";
+    var contextMenuActive = "context-menu--active";
 
-    taskItemClassName: "btnFile",
-    taskItemInContext: null,
+    var taskItemClassName = "btnFile";
+    var taskItemInContext;
 
-    clickCoords: null,
-    clickCoordsX: null,
-    clickCoordsY: null,
+    var clickCoords;
+    var clickCoordsX;
+    var clickCoordsY;
 
-    //    menu : document.querySelector("#context-menu"),
-    //    menuItems : menu.querySelectorAll(".context-menu__item");
-    menuState: 0,
-    menuWidth: null,
-    menuHeight: null,
-    menuPosition: null,
-    menuPositionX: null,
-    menuPositionY: null,
+    var menu = document.querySelector("#context-menu");
+    //var menuItems = menu.querySelectorAll(".context-menu__item");
+    var menuState = 0;
+    var menuWidth;
+    var menuHeight;
+    var menuPosition;
+    var menuPositionX;
+    var menuPositionY;
 
-    windowWidth: null,
-    windowHeight: null,
+    var windowWidth;
+    var windowHeight;
 
     /**
      * Initialise our application's code.
      */
-    init: function () {
-        this.contextListener();
-        this.clickListener();
-        this.keyupListener();
-        this.resizeListener();
-    },
+    function init() {
+        contextListener();
+        clickListener();
+        keyupListener();
+        resizeListener();
+    }
 
     /**
      * Listens for contextmenu events.
      */
-    contextListener: function () {
-
-        var $that = this;
+    function contextListener() {
         document.addEventListener("contextmenu", function (e) {
-
-
-            taskItemInContext = $that.clickInsideElement(e, $that.taskItemClassName);
+            taskItemInContext = clickInsideElement(e, taskItemClassName);
 
             if (taskItemInContext) {
                 e.preventDefault();
-                $that.toggleMenuOn();
-                $that.positionMenu(e);
-
+                toggleMenuOn();
+                positionMenu(e);
             } else {
                 taskItemInContext = null;
-                $that.toggleMenuOff();
-
+                toggleMenuOff();
             }
         });
-    },
+    }
 
     /**
      * Listens for click events.
      */
-    clickListener: function () {
-        var $that = this;
+    function clickListener() {
         document.addEventListener("click", function (e) {
-            var clickeElIsLink = $that.clickInsideElement(e, $that.contextMenuLinkClassName);
+            var clickeElIsLink = clickInsideElement(e, contextMenuLinkClassName);
 
             if (clickeElIsLink) {
                 e.preventDefault();
-                $that.menuItemListener(clickeElIsLink);
+                menuItemListener(clickeElIsLink);
             } else {
                 var button = e.which || e.button;
                 if (button === 1) {
-                    $that.toggleMenuOff();
+                    toggleMenuOff();
                 }
             }
         });
-    },
+    }
 
     /**
      * Listens for keyup events.
      */
-    keyupListener: function () {
-        var $that = this;
+    function keyupListener() {
         window.onkeyup = function (e) {
             if (e.keyCode === 27) {
-                $that.toggleMenuOff();
+                toggleMenuOff();
             }
         }
-    },
+    }
 
     /**
      * Window resize event listener
      */
-    resizeListener: function () {
+    function resizeListener() {
         window.onresize = function (e) {
             toggleMenuOff();
         };
-    },
+    }
 
     /**
      * Turns the custom context menu on.
      */
-    toggleMenuOn: function () {
-        if (this.menuState !== 1) {
-            this.menuState = 1;
-            var menu = document.getElementById("context-menu");
-            menu.classList.add(this.contextMenuActive);
+    function toggleMenuOn() {
+        if (menuState !== 1) {
+            menuState = 1;
+            menu.classList.add(contextMenuActive);
         }
-    },
+    }
 
     /**
      * Turns the custom context menu off.
      */
-    toggleMenuOff: function () {
-        if (this.menuState !== 0) {
-            this.menuState = 0;
-            var menu = document.getElementById("context-menu");
-            menu.classList.remove(this.contextMenuActive);
+    function toggleMenuOff() {
+        if (menuState !== 0) {
+            menuState = 0;
+            menu.classList.remove(contextMenuActive);
         }
-    },
+    }
 
     /**
      * Positions the menu properly.
      * 
      * @param {Object} e The event
      */
-    positionMenu: function (e) {
-        var menu = document.getElementById("context-menu");
+    function positionMenu(e) {
+        clickCoords = getPosition(e);
+        clickCoordsX = clickCoords.x;
+        clickCoordsY = clickCoords.y;
 
-        this.clickCoords = this.getPosition(e);
-        this.clickCoordsX = this.clickCoords.x;
-        this.clickCoordsY = this.clickCoords.y;
+        menuWidth = menu.offsetWidth + 4;
+        menuHeight = menu.offsetHeight + 4;
 
-        this.menuWidth = menu.offsetWidth + 4;
-        this.menuHeight = menu.offsetHeight + 4;
-
-        this.windowWidth = window.innerWidth;
-        this.windowHeight = window.innerHeight;
+        windowWidth = window.innerWidth;
+        windowHeight = window.innerHeight;
 
         var parentOffset = $("#dirbody").offset();
 
-
-        if ((this.windowWidth - this.clickCoordsX) < this.menuWidth) {
-            menu.style.left = this.windowWidth - this.menuWidth - parentOffset.left + "px";
+        if ((windowWidth - clickCoordsX) < menuWidth) {
+            menu.style.left = windowWidth - menuWidth - parentOffset.left + "px";
         } else {
-            menu.style.left = this.clickCoordsX - parentOffset.left + "px";
+            menu.style.left = clickCoordsX - parentOffset.left + "px";
         }
 
-        if ((this.windowHeight - this.clickCoordsY) < this.menuHeight) {
-            menu.style.top = this.windowHeight - this.menuHeight - parentOffset.top + "px";
+        if ((windowHeight - clickCoordsY) < menuHeight) {
+            menu.style.top = windowHeight - menuHeight - parentOffset.top + "px";
         } else {
-            menu.style.top = this.clickCoordsY - parentOffset.top + "px";
+            menu.style.top = clickCoordsY - parentOffset.top + "px";
         }
-        console.log(this.menu);
-        // alert("aaa");
-    },
+    }
 
     /**
      * Dummy action function that logs an action when a menu item link is clicked
      * 
      * @param {HTMLElement} link The link that was clicked
      */
-    menuItemListener: function (link) {
+    function menuItemListener(link) {
         //  console.log("Task ID - " + taskItemInContext.getAttribute("data-path") + ", Task action - " + link.getAttribute("data-action"));
 
         var filePath = taskItemInContext.getAttribute("data-path");
@@ -254,7 +481,7 @@ var QNZCM = {
                     $.ajax({
                         type: "POST",
                         contentType: "application/json",
-                        url: "/QNZFinder/CreateDir?filePath=" + filePath + "&dir=" + newName,
+                        url: "/qnzfinder/CreateDir?filePath=" + filePath + "&dir=" + newName,
                         //  data: JSON.stringify({filePath: filePath }),
                         dataType: 'json',
                         success: function (result) {
@@ -262,8 +489,8 @@ var QNZCM = {
 
                                 toastr.success(result.message, "创建目录")
                                 var li = taskItemInContext.closest("li");
-                                var urlDir = "/QNZFinder/GetSubDirectories?dir=" + filePath;
-                                QNZ.getSubDirectories(urlDir, $(li));
+                                var urlDir = "/qnzfinder/GetSubDirectories?dir=" + filePath;
+                                SIG.getInstance().getSubDirectories(urlDir, $(li));
 
                             }
                             else {
@@ -280,7 +507,7 @@ var QNZCM = {
                 $.ajax({
                     type: "POST",
                     contentType: "application/json",
-                    url: "/QNZFinder/DeleteDir?filePath=" + filePath,
+                    url: "/qnzfinder/DeleteDir?filePath=" + filePath,
                     //  data: JSON.stringify({filePath: filePath }),
                     dataType: 'json',
                     success: function (result) {
@@ -290,8 +517,8 @@ var QNZCM = {
                             var li = taskItemInContext.closest("li"), parentLi = $(li).closest("ul").closest("li"),
                                 parentPath = $(li).closest("ul").prevAll("a:first").attr("data-path");
 
-                            var urlDir = "/QNZFinder/GetSubDirectories?dir=" + parentPath
-                            QNZ.getSubDirectories(urlDir, parentLi);
+                            var urlDir = "/qnzfinder/GetSubDirectories?dir=" + parentPath
+                            SIG.getInstance().getSubDirectories(urlDir, parentLi);
 
 
                         }
@@ -316,7 +543,7 @@ var QNZCM = {
                     $.ajax({
                         type: "POST",
                         contentType: "application/json",
-                        url: "/QNZFinder/RenameDir?filePath=" + filePath + "&newFilePath=" + newPath,
+                        url: "/qnzfinder/RenameDir?filePath=" + filePath + "&newFilePath=" + newPath,
                         //  data: JSON.stringify({filePath: filePath }),
                         dataType: 'json',
                         success: function (result) {
@@ -325,8 +552,8 @@ var QNZCM = {
                                 var li = taskItemInContext.closest("li"), parentLi = $(li).closest("ul").closest("li"),
                                     parentPath = $(li).closest("ul").prevAll("a:first").attr("data-path");
 
-                                var urlDir = "/QNZFinder/GetSubDirectories?dir=" + parentPath
-                                QNZ.getSubDirectories(urlDir, parentLi);
+                                var urlDir = "/qnzfinder/GetSubDirectories?dir=" + parentPath
+                                SIG.getInstance().getSubDirectories(urlDir, parentLi);
 
 
                             }
@@ -336,17 +563,23 @@ var QNZCM = {
 
                         }
                     });
-                    // QNZ.renameFile(filePath, newPath, download);
+                    // SIG.getInstance().renameFile(filePath, newPath, download);
 
                 }
+
 
                 break;
         }
 
-        this.toggleMenuOff();
+        toggleMenuOff();
     }
 
-}
+    /**
+     * Run the app.
+     */
+    init();
+
+})();
 
 
 ////page js
@@ -400,11 +633,11 @@ var QNZCM = {
 //                if (filePath !== undefined) {
 //                    var url = "/qnzfinder/GetSubFiles?dir=" + filePath;
 
-//                    QNZ.getFiles(url);
+//                    SIG.getInstance().getFiles(url);
 //                    // $("#btnRefresh").attr("data-dir", dir);
 //                } else {
 //                    //载入初始目录
-//                    QNZ.Initialize();
+//                    SIG.getInstance().Initialize();
 //                }
 //            }
 //        }
@@ -459,226 +692,6 @@ var QNZCM = {
 
 
 var QNZ = {
-
-    //获取根目录列表
-    getDirectories: function(url) {
-        var $that = this;
-        $.getJSON(url, function (result) {
-            var lastOpenPath = localStorage.getItem('lastOpenPath');
-            var dirs = '';
-            $.each(result, function (i, item) {
-                //     console.log(item);
-                var isHidden = item.hasChildren ? "" : "hidden";
-                var isplus = item.isOpen ? "minus" : "plus";
-                dirs += '<li class="' + isplus + '">';
-                dirs += '<div class="exp"><a href="#" class="btnDir" data-loaded="1" data-path="' + item.dirPath + '" ' + isHidden + '>';
-                dirs += '<span class="iconfont icon-' + isplus + ' fa-fw"></span></a></div> ';
-                if (lastOpenPath == item.dirPath) {
-                    dirs += '<a href="#" class="btnFile active" data-path="' + item.dirPath + '"><span class="iconfont icon-folder-open-fill fa-fw"></span>' + item.name + '</a>';
-                } else {
-                    dirs += '<a href="#" class="btnFile" data-path="' + item.dirPath + '"><span class="iconfont icon-folder-fill fa-fw"></span>' + item.name + '</a>';
-                }
-
-                dirs += $that.loadSubDirectories(item.children);
-
-                dirs += '</li > ';
-            });
-
-            $("#dirTree").html(dirs);
-
-        });
-    },
-
-
-    // 递归加载子目录
-    loadSubDirectories: function(items) {
-        var lastOpenPath = localStorage.getItem('lastOpenPath');
-        var dirs = '<ul class="subTree">';
-        $.each(items, function (key, val) {
-
-            var isHidden = val.hasChildren ? "" : "hidden";
-            var isplus = val.isOpen ? "minus" : "plus";
-            dirs += '<li class="' + isplus + '">';
-            dirs += '<div class="exp"><a href="#" class="btnDir" data-loaded="1" data-path="' + val.dirPath + '" ' + isHidden + '>' +
-                '<span class="iconfont icon-plus fa-fw"></span>' +
-                '</a></div>';
-            if (lastOpenPath == val.dirPath) {
-                dirs += '<a href="#" class="btnFile active" data-path="' + val.dirPath + '"><span class="iconfont icon-folder-open-fill"></span>' + val.name + '</a>';
-            } else {
-                dirs += '<a href="#" class="btnFile" data-path="' + val.dirPath + '"><span class="iconfont icon-folder-fill"></span>' + val.name + '</a>';
-            }
-
-            dirs += loadSubDirectories(val.children);  // 递归加载
-            dirs += '</li>';
-
-        });
-        dirs += '</ul>';
-        return dirs;
-    },
-
-    //获取子目录列表
-    getSubDirectories: function(url, li) {
-        li.find("ul").remove();
-        //console.log(li);
-        $.getJSON(url, function (result) {
-
-            var item = "";
-            $.each(result, function (key, val) {
-                // debugger;
-                var isHidden = val.hasChildren ? "" : "hidden";
-                item += '<li>' +
-                    '<div class="exp"><a href="#" class="btnDir" data-loaded="0" data-path="' + val.dirPath + '" ' + isHidden + '>' +
-                    '<span class="iconfont icon-plus fa-fw"></span>' +
-                    '</a></div>' +
-                    '<a href="#" class="btnFile" data-path="' + val.dirPath + '"><span class="iconfont icon-folder-fill"></span>' + val.name + '</a>' +
-                    '</li>';
-
-            });
-
-            $('<ul/>', { html: item }).addClass("subTree").appendTo(li);
-
-            li.children(".exp").find("a").attr("data-loaded", "1").find("span").removeClass("icon-plus").addClass("icon-minus");
-
-        });
-    },
-
-
-
-    //获取文件列表
-    getFiles: function (url) {
-        var $that = this;
-        $.getJSON(url, function (result) {
-            $that.loadFiles(result);
-        });
-    },
-
-
-
-    loadFiles:function(result) {
-        $('#fileList').empty(); // Clear the table body.
-
-        $.each(result, function (key, val) {
-            // debugger;
-            var item = '<div class="itembox">' +
-                '<div class="qnz-card item" data-file="' + val.filePath + '" data-name="' + val.name + '">' +
-                '<div class="qnz-card-body">' +
-                '<img src="' + val.imgUrl + '" class="img-responsive" />' +
-                '</div>' +
-                '<div class="qnz-card-footer">' +
-                '<div class="filename"><span>' + val.name + '</span></div>' +
-                '<div class="date">date: ' + val.createdDate + '</div> ' +
-                '<div class="buttons">' +
-                '<div class="qnz-btn-group" role="group">' +
-                '<button type="button" class="qnz-btn rename" title="重命名"><i class="iconfont icon-edit"></i></button>' +
-                '<button type="button" class="qnz-btn download" title="下载"><i class="iconfont icon-download"></i></button>' +
-                '<button type="button" class="qnz-btn btnDelete" title="删除"><i class="iconfont icon-delete"></i></button>' +
-                '</div><div class="fileSize">' + val.fileSize + 'KB</div>' +
-                '</div>' +
-                '' +
-                '</div>' +
-                '</div>';
-            $(item).appendTo($('#fileList'));
-        });
-    },
-
-
-    //打开当前的路径
-    loadCurrentURL:function(url) {
-        url = url;
-        var baseUrl = "/Uploads/";
-
-
-        if (url.startsWith(baseUrl)) {
-            var dir = url.split("/");
-            var index = url.indexOf(dir[dir.length - 1]) - 1;
-
-            var subStr = url.substring(9, index);
-            var subDir = subStr.split("/");
-            var goDir = baseUrl;
-            for (var i = 0; i < subDir.length; i++) {
-                goDir = goDir + subDir[i];
-                goDir = goDir;
-
-                var li = $("a[data-path='" + goDir + "']").eq(0).closest("li");
-
-                if (i < (subDir.length - 1)) {
-
-                    var urlDir = "/qnzfinder/GetSubDirectories?dir=" + goDir;
-                    QNZ.getSubDirectories(urlDir, li);
-                    goDir = goDir + "/";
-                } else {
-
-                    var urlDir = "/qnzfinder/GetSubFiles?dir=" + goDir;
-
-                    QNZ.getFiles(urlDir);
-                    $("#btnRefresh").attr("data-dir", goDir);
-
-                    setTimeout(function () {
-                        $("[data-path='" + goDir + "']").eq(1).addClass("active").children("span").removeClass("icon-folder-fill").addClass("icon-folder-open-fill");
-                        $("#fileList div[data-file='" + url + "']").addClass("active");
-                    }, 1000);
-
-                }
-
-
-            }
-            //alert(url.substring(9, index));
-        }
-
-    },
-
-    renameFile: function(oldpath, newpath, item) {
-
-        $.ajax({
-            type: "POST",
-            contentType: "application/json",
-            url: "/qnzfinder/RenameFile?filePath=" + oldpath + "&newFilePath=" + newpath,
-            //  data: JSON.stringify({filePath: filePath }),
-            dataType: 'json',
-            success: function (result) {
-                if (result.status === 1) {
-                    // container.remove()
-                    toastr.success(result.message);
-                    item.attr("data-file", newpath);
-                    item.find(".boxfooter").children("span").text(newpath.split('/').pop());
-
-                } else {
-                    toastr.error(result.message);
-                }
-
-            }
-        });
-    },
-
-
-    // 初始化
-    Initialize: function (){
-
-        var lastOpenPath = localStorage.getItem('lastOpenPath');
-        var url = lastOpenPath != null ? "/qnzfinder/currentdirectories?currentDir=" + lastOpenPath : "/qnzfinder/currentdirectories";
-        this.getDirectories(url);
-
-        var url2 = lastOpenPath != null ? "/qnzfinder/GetSubFiles?dir=" + lastOpenPath : "/qnzfinder/GetSubFiles";
-        this.getFiles(url2);
-
-        var tdir = lastOpenPath == null ? $("#rootDir").val() : lastOpenPath;
-
-        this.setCurrentFilePath(tdir);
-
-    },
-
-    // 设置当前目录
-    setCurrentFilePath:function(filePath) {
-
-        var elFilePath = document.getElementById("filePath");
-        elFilePath.innerText = filePath;
-
-        var elFilePath2 = document.getElementById("filePathForm");
-        elFilePath2.value = filePath;
-    },
-
-
-    // tinymce 快捷上传调用
     ImagesUploadHandler: function (blobInfo, success, failure) {
         var xhr, formData;
 
@@ -824,7 +837,7 @@ var QNZ = {
 
             localStorage.clear();  // 清除最后路径
 
-            QNZ.Initialize();
+            SIG.getInstance().Initialize();
 
         });
 
@@ -842,7 +855,7 @@ var QNZ = {
             if (isLoaded === "0") {
 
                 var urlDir = "/qnzfinder/GetSubDirectories?dir=" + dir;
-                QNZ.getSubDirectories(urlDir, parent);
+                SIG.getInstance().getSubDirectories(urlDir, parent);
 
             }
 
@@ -863,14 +876,14 @@ var QNZ = {
 
             $(this).children("span").removeClass("icon-folder-fill").addClass("icon-folder-open-fill");
 
-            QNZ.getFiles(url);
+            SIG.getInstance().getFiles(url);
 
             //$("#btnRefresh").attr("data-dir", dir);
             //$("#filePath").text(dir);
             //var filePath = document.getElementById("filePath");
             //filePath.innerText = dir;
 
-            QNZ.setCurrentFilePath(dir)
+            SIG.getInstance().setCurrentFilePath(dir)
         });
 
         $("body").delegate("#btnRefresh", "click", function (e) {
@@ -882,7 +895,7 @@ var QNZ = {
             var dir = filePath.innerText; //$(this).attr("data-dir"),
             var url = "/qnzfinder/GetSubFiles?dir=" + dir;
 
-            QNZ.getFiles(url);
+            SIG.getInstance().getFiles(url);
 
         });
 
@@ -919,11 +932,11 @@ var QNZ = {
                 var newext = newName.split('.').pop().toLowerCase();
 
                 if (oldext === newext) {
-                    QNZ.renameFile(filePath, newPath, download);
+                    SIG.getInstance().renameFile(filePath, newPath, download);
 
                 } else {
                     if (confirm("改变文件后缀名，可能导致文件不可用，是否要修改？")) {
-                        QNZ.renameFile(filePath, newPath, download);
+                        SIG.getInstance().renameFile(filePath, newPath, download);
                     }
 
                 }
@@ -972,49 +985,24 @@ var QNZ = {
 
     //依赖 dropzonejs 组件
     InitDropzone: function () {
-        Dropzone.autoDiscover = false;
+        Dropzone.options.dropzoneForm = {
+            paramName: "file",
+            maxFilesize: 20,
+            maxFiles: 5,
+            acceptedFiles: "image/*,application/pdf",
+            dictMaxFilesExceeded: "Custom max files msg",
+            dictDefaultMessage: "拖拽文件到这里上传",
+            queuecomplete: function (files) {
+                this.removeAllFiles();
+                console.log("queuecomplete");
+                document.getElementById("uploadbox").style.display = "none";
 
-        var myDropzone = new Dropzone("#dropzoneForm",
-            {
-                url: "/QNZFinder/DropzoneUploadFile",
-                paramName: "file",
-                maxFilesize: 20,
-                maxFiles: 5,
-             
-                acceptedFiles: "image/*,application/pdf",
-                dictMaxFilesExceeded: "Custom max files msg",
-                dictDefaultMessage: "拖拽文件到这里上传",
-                queuecomplete: function (files) {
-                    this.removeAllFiles();
-                    console.log("queuecomplete");
-                    document.getElementById("uploadbox").style.display = "none";
-
-                    var filePath = document.getElementById("filePath");
-                    var dir = filePath.innerText; //$(this).attr("data-dir"),
-                    var url = "/QNZFinder/GetSubFiles?dir=" + dir;
-                    QNZ.getFiles(url);
-                }
-            });
-       
-
-        //Dropzone.options.dropzoneForm = {
-        //    paramName: "file",
-        //    maxFilesize: 20,
-        //    maxFiles: 5,
-        //    acceptedFiles: "image/*,application/pdf",
-        //    dictMaxFilesExceeded: "Custom max files msg",
-        //    dictDefaultMessage: "拖拽文件到这里上传",
-        //    queuecomplete: function (files) {
-        //        this.removeAllFiles();
-        //        console.log("queuecomplete");
-        //        document.getElementById("uploadbox").style.display = "none";
-
-        //        var filePath = document.getElementById("filePath");
-        //        var dir = filePath.innerText; //$(this).attr("data-dir"),
-        //        var url = "/qnzfinder/GetSubFiles?dir=" + dir;
-        //        QNZ.getFiles(url);
-        //    }
-        //};
+                var filePath = document.getElementById("filePath");
+                var dir = filePath.innerText; //$(this).attr("data-dir"),
+                var url = "/qnzfinder/GetSubFiles?dir=" + dir;
+                SIG.getInstance().getFiles(url);
+            }
+        };
     }
 
 
@@ -1022,9 +1010,9 @@ var QNZ = {
 
 
 
-//$(function () {
-//    QNZ.Initialize(); //载入初始目录
-//    QNZ.AllUIEventsBind();  //初始化绑定UI事件  
-//});
+$(function () {
+    SIG.getInstance().Initialize(); //载入初始目录
+    QNZ.AllUIEventsBind();  //初始化绑定UI事件  
+});
 
-//QNZ.InitDropzone();  //初始化拖拽绑定
+QNZ.InitDropzone();  //初始化拖拽绑定

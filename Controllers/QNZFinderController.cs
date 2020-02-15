@@ -443,53 +443,53 @@ namespace QNZFinder.Controllers
 
         }
 
-        /// <summary>
-        /// 上传文件
-        /// </summary>
-        /// <param name="filePath"></param>
-        /// <param name="files"></param>
-        /// <returns></returns>
-        [HttpPost]
-        public async Task<IActionResult> UploadFiles(string filePath, List<IFormFile> files)
-        {
-            string webRootPath = _hostingEnvironment.WebRootPath;
-            // var filePath = Path.GetTempFileName();
-            foreach (var iFormFile in files)
-            {
-                if (iFormFile.Length > 0)
-                {
-                    var orgFileName = Path.GetFileNameWithoutExtension(iFormFile.FileName);
-                    var ex = Path.GetExtension(iFormFile.FileName);
-                    //string filename = ImageHandler.GetRandomFileName(Path.GetExtension(iFormFile.FileName), 10000);
-                    string localPath = webRootPath + (string.IsNullOrEmpty(filePath) ? _rootDirectory.Replace('/', '\\') : filePath.Replace('/', '\\'));
+        ///// <summary>
+        ///// 上传文件
+        ///// </summary>
+        ///// <param name="filePath"></param>
+        ///// <param name="files"></param>
+        ///// <returns></returns>
+        //[HttpPost]
+        //public async Task<IActionResult> UploadFiles(string filePath, List<IFormFile> files)
+        //{
+        //    string webRootPath = _hostingEnvironment.WebRootPath;
+        //    // var filePath = Path.GetTempFileName();
+        //    foreach (var iFormFile in files)
+        //    {
+        //        if (iFormFile.Length > 0)
+        //        {
+        //            var orgFileName = Path.GetFileNameWithoutExtension(iFormFile.FileName);
+        //            var ex = Path.GetExtension(iFormFile.FileName);
+        //            //string filename = ImageHandler.GetRandomFileName(Path.GetExtension(iFormFile.FileName), 10000);
+        //            string localPath = webRootPath + (string.IsNullOrEmpty(filePath) ? _rootDirectory.Replace('/', '\\') : filePath.Replace('/', '\\'));
 
-                    if (!Directory.Exists(localPath))
-                    {
-                        Directory.CreateDirectory(localPath);
-                    }
-                    string fileName = FileHelper.GetFileName(orgFileName, localPath, ex);
+        //            if (!Directory.Exists(localPath))
+        //            {
+        //                Directory.CreateDirectory(localPath);
+        //            }
+        //            string fileName = FileHelper.GetFileName(orgFileName, localPath, ex);
 
-                    string saveFilePath = Path.Combine(localPath, fileName);
+        //            string saveFilePath = Path.Combine(localPath, fileName);
 
-                    var oldstr = "wwwroot" + _rootDirectory.Replace('/', '\\');
-                    var newstr = "wwwroot" + _tempDirectory.Replace('/', '\\');
-                    string _thumbPath = saveFilePath.Replace(oldstr, newstr);
+        //            var oldstr = "wwwroot" + _rootDirectory.Replace('/', '\\');
+        //            var newstr = "wwwroot" + _tempDirectory.Replace('/', '\\');
+        //            string _thumbPath = saveFilePath.Replace(oldstr, newstr);
 
-                    using (var stream = new FileStream(saveFilePath, FileMode.Create))
-                    {
-                        await iFormFile.CopyToAsync(stream);
-                    }
-                    //   ImageHandler.MakeThumbnail2(saveFilePath, _thumbPath, 120, 90, "DB", ex.ToLower());
-                    if (ex.ToLower() == ".jpg" || ex.ToLower() == ".png" || ex.ToLower() == ".gif")
-                    {
-                        ImageHandler.MakeThumbnail2(saveFilePath, _thumbPath, _thumbWidth, _thumbHeight);
-                    }
+        //            using (var stream = new FileStream(saveFilePath, FileMode.Create))
+        //            {
+        //                await iFormFile.CopyToAsync(stream);
+        //            }
+        //            //   ImageHandler.MakeThumbnail2(saveFilePath, _thumbPath, 120, 90, "DB", ex.ToLower());
+        //            if (ex.ToLower() == ".jpg" || ex.ToLower() == ".png" || ex.ToLower() == ".gif")
+        //            {
+        //                ImageHandler.MakeThumbnail2(saveFilePath, _thumbPath, _thumbWidth, _thumbHeight);
+        //            }
 
-                }
-            }
-            //return RedirectToAction("Home");
-            return StatusCode(StatusCodes.Status200OK, "文件成功上传！ ");
-        }
+        //        }
+        //    }
+        //    //return RedirectToAction("Home");
+        //    return StatusCode(StatusCodes.Status200OK, "文件成功上传！ ");
+        //}
 
 
         /// <summary>

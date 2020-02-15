@@ -31,31 +31,16 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/plugins/toastr/toastr.min.js"></script>
-    <script src="/Plugins/QNZFinder/FileManager.js"></script>
     <script src="~/plugins/dropzone/min/dropzone.min.js"></script>
+    <script src="/Plugins/QNZFinder/FileManager.js"></script>
+
     <script>
 
-        
-        Dropzone.options.dropzoneForm = {
-            paramName: "file",
-            maxFilesize: 20,
-            maxFiles: 5,
-            acceptedFiles: "image/*,application/pdf",
-            dictMaxFilesExceeded: "Custom max files msg",
-            dictDefaultMessage: "拖拽文件到这里上传",        
-            queuecomplete: function (files) {
-                this.removeAllFiles();
-                console.log("queuecomplete");
-                document.getElementById("uploadbox").style.display = "none";
-                
-                var filePath = document.getElementById("filePath");
-                var dir = filePath.innerText; //$(this).attr("data-dir"),
-                var url = "/qnzfinder/GetSubFiles?dir=" + dir;
-                SIG.getInstance().getFiles(url);
-            }
-        };
 
-
+        QNZ.Initialize(); //载入初始目录
+        QNZ.AllUIEventsBind();  //初始化绑定UI事件  
+        QNZCM.init();  //右键菜单
+        QNZ.InitDropzone();  //初始化拖拽绑定
 
         function selectImage(fileUrl) {
             //  console.log(fileUrl);

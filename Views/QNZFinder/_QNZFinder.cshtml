@@ -74,7 +74,7 @@
 
             <div class="uploadbox" id="uploadbox">
                 <button type="button" class="close" id="btnClose"><span aria-hidden="true">&times;</span></button>
-                @using (Html.BeginForm("DropzoneUploadFile", "QNZFinder", FormMethod.Post, new { @class = "dropzone", id = "dropzone-form", }))
+                @using (Html.BeginForm("DropzoneUploadFile", "QNZFinder", FormMethod.Post, new { @class = "dropzone", id = "dropzoneForm", }))
                 {
                     <div class="fallback">
                         <input name="file" type="file" multiple />
