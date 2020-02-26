@@ -233,7 +233,7 @@ var QNZCM = {
         } else {
             menu.style.top = this.clickCoordsY - parentOffset.top + "px";
         }
-        console.log(this.menu);
+        // console.log(this.menu);
         // alert("aaa");
     },
 
@@ -263,7 +263,7 @@ var QNZCM = {
                                 toastr.success(result.message, "创建目录")
                                 var li = taskItemInContext.closest("li");
                                 var urlDir = "/QNZFinder/GetSubDirectories?dir=" + filePath;
-                                QNZ.getSubDirectories(urlDir, $(li));
+                                QNZ.getSubDirectories(urlDir, li);
 
                             }
                             else {
@@ -287,7 +287,7 @@ var QNZCM = {
 
                         if (result.status === 1) {
                             toastr.success(result.message, "删除目录")
-                            var li = taskItemInContext.closest("li"), parentLi = $(li).closest("ul").closest("li"),
+                            var li = taskItemInContext.closest("li"), parentLi = li.closest("ul").closest("li"),
                                 parentPath = $(li).closest("ul").prevAll("a:first").attr("data-path");
 
                             var urlDir = "/QNZFinder/GetSubDirectories?dir=" + parentPath
@@ -322,7 +322,7 @@ var QNZCM = {
                         success: function (result) {
                             if (result.status === 1) {
                                 toastr.success(result.message, "重命名目录")
-                                var li = taskItemInContext.closest("li"), parentLi = $(li).closest("ul").closest("li"),
+                                var li = taskItemInContext.closest("li"), parentLi = li.closest("ul").closest("li"),
                                     parentPath = $(li).closest("ul").prevAll("a:first").attr("data-path");
 
                                 var urlDir = "/QNZFinder/GetSubDirectories?dir=" + parentPath
@@ -349,130 +349,35 @@ var QNZCM = {
 }
 
 
-////page js
-//function closeUploader() {
-//    $("#thelist").html("");
-//    $("#picker").text("选择文件")
-//    $("#uploadFile").removeClass("show").animate({ top: "-100px" }, 600);
-//}
 
-////上传文件
-//function uploadFiles(inputId) {
-//    var filePath = $("#dirTree a.active").attr("data-path");
-//    var serverUrl = filePath !== undefined ? filePath : "";
-
-
-//    var input = document.getElementById(inputId);
-//    var files = input.files;
-//    var formData = new FormData();
-
-//    for (var i = 0; i != files.length; i++) {
-//        formData.append("files", files[i]);
-//    }
-
-//    formData.append("filePath", serverUrl);
-//    //debugger;
-//    $.ajax(
-//        {
-//            url: "/Admin/QNZFinder/UploadFiles",
-//            data: formData,
-//            processData: false,
-//            contentType: false,
-//            type: "POST",
-//            xhr: function () {
-//                var xhr = new window.XMLHttpRequest();
-//                xhr.upload.addEventListener("progress",
-//                    function (evt) {
-//                        if (evt.lengthComputable) {
-//                            var progress = Math.round((evt.loaded / evt.total) * 100);
-
-//                            console.log(progress);
-//                        }
-//                    },
-//                    false);
-//                return xhr;
-//            },
-//            success: function (data) {
-//               // alert("Files Uploaded!");
-
-//                closeUploader();
-
-//                if (filePath !== undefined) {
-//                    var url = "/qnzfinder/GetSubFiles?dir=" + filePath;
-
-//                    QNZ.getFiles(url);
-//                    // $("#btnRefresh").attr("data-dir", dir);
-//                } else {
-//                    //载入初始目录
-//                    QNZ.Initialize();
-//                }
-//            }
-//        }
-//    );
-//}
-
-
-
-
-
-
-//var SIGFinder = {   
-
-//    FilePickerCallback: function(callback, value, meta) {
-//        tinymce.activeEditor.windowManager.open({
-//            file: '/Admin/QNZFinder/FinderForTinyMce',// use an absolute path!
-//            title: 'QNZFinder 1.0',
-//            width: 900,
-//            height: 450,
-//            resizable: 'yes'
-//        }, {
-//                oninsert: function (file, fm) {
-//                    var url, reg, info;
-
-//                    // URL normalization
-//                    // url = fm.convAbsUrl(file.url);
-//                    url = "/" + file.path;
-//                    // Make file info
-//                    info = file.name + ' (' + fm.formatSize(file.size) + ')';
-
-//                    // Provide file and text for the link dialog
-//                    if (meta.filetype == 'file') {
-//                        callback(url, { text: info, title: info });
-//                    }
-
-//                    // Provide image and alt text for the image dialog
-//                    if (meta.filetype == 'image') {
-//                        callback(url, { alt: info });
-//                    }
-
-//                    // Provide alternative source and posted for the media dialog
-//                    if (meta.filetype == 'media') {
-//                        callback(url);
-//                    }
-//                }
-//            });
-//            return false;
-//        },
-
-
-//};
 
 
 var QNZ = {
 
     //获取根目录列表
-    getDirectories: function(url) {
+    getDirectories: function (url) {
         var $that = this;
-        $.getJSON(url, function (result) {
+
+        const xhr = new XMLHttpRequest();        
+        xhr.open('GET', url);
+        // set response format
+        xhr.responseType = 'json';
+        xhr.send();
+        xhr.onload = () => {
+            // get JSON response
+            const result = xhr.response;
             var lastOpenPath = localStorage.getItem('lastOpenPath');
             var dirs = '';
-            $.each(result, function (i, item) {
-                //     console.log(item);
+            // log details
+            //console.log(result);
+
+            result.forEach((item) => {
+                // console.log(item);
                 var isHidden = item.hasChildren ? "" : "hidden";
                 var isplus = item.isOpen ? "minus" : "plus";
                 dirs += '<li class="' + isplus + '">';
-                dirs += '<div class="exp"><a href="#" class="btnDir" data-loaded="1" data-path="' + item.dirPath + '" ' + isHidden + '>';
-                dirs += '<span class="iconfont icon-' + isplus + ' fa-fw"></span></a></div> ';
+                dirs += '<div class="exp"><a href="javascript:void(0);"  onclick="QNZ.expFloders(this)" class="btnDir" data-loaded="1" data-path="' + item.dirPath + '" ' + isHidden + '>';
+                dirs += '<span class="iconfont icon-' + isplus + ' fa-fw"></span></button></div> ';
                 if (lastOpenPath == item.dirPath) {
                     dirs += '<a href="#" class="btnFile active" data-path="' + item.dirPath + '"><span class="iconfont icon-folder-open-fill fa-fw"></span>' + item.name + '</a>';
                 } else {
@@ -483,65 +388,101 @@ var QNZ = {
 
                 dirs += '</li > ';
             });
-
-            $("#dirTree").html(dirs);
-
-        });
+            document.getElementById("dirTree").innerHTML = dirs;
+          
+        }
+      
     },
 
 
     // 递归加载子目录
-    loadSubDirectories: function(items) {
+    loadSubDirectories: function (items) {
+        var $that = this;
+
         var lastOpenPath = localStorage.getItem('lastOpenPath');
         var dirs = '<ul class="subTree">';
-        $.each(items, function (key, val) {
 
-            var isHidden = val.hasChildren ? "" : "hidden";
-            var isplus = val.isOpen ? "minus" : "plus";
+        items.forEach((item) => {
+            var isHidden = item.hasChildren ? "" : "hidden";
+            var isplus = item.isOpen ? "minus" : "plus";
             dirs += '<li class="' + isplus + '">';
-            dirs += '<div class="exp"><a href="#" class="btnDir" data-loaded="1" data-path="' + val.dirPath + '" ' + isHidden + '>' +
+            dirs += '<div class="exp"><a href="javascript:void(0);"  onclick="QNZ.expFloders(this)"  class="btnDir" data-loaded="1" data-path="' + item.dirPath + '" ' + isHidden + '>' +
                 '<span class="iconfont icon-plus fa-fw"></span>' +
                 '</a></div>';
-            if (lastOpenPath == val.dirPath) {
-                dirs += '<a href="#" class="btnFile active" data-path="' + val.dirPath + '"><span class="iconfont icon-folder-open-fill"></span>' + val.name + '</a>';
+            if (lastOpenPath == item.dirPath) {
+                dirs += '<a href="#" class="btnFile active" data-path="' + item.dirPath + '"><span class="iconfont icon-folder-open-fill"></span>' + item.name + '</a>';
             } else {
-                dirs += '<a href="#" class="btnFile" data-path="' + val.dirPath + '"><span class="iconfont icon-folder-fill"></span>' + val.name + '</a>';
+                dirs += '<a href="#" class="btnFile" data-path="' + item.dirPath + '"><span class="iconfont icon-folder-fill"></span>' + item.name + '</a>';
             }
 
-            dirs += loadSubDirectories(val.children);  // 递归加载
+            dirs += $that.loadSubDirectories(item.children);  // 递归加载
             dirs += '</li>';
-
         });
+        
         dirs += '</ul>';
         return dirs;
     },
 
     //获取子目录列表
-    getSubDirectories: function(url, li) {
-        li.find("ul").remove();
-        //console.log(li);
-        $.getJSON(url, function (result) {
+    getSubDirectories: function (url, li) {
+        li.getElementsByTagName("ul")[0].remove();          
+      //  console.log("子目录start");
+      //  console.log(li);
 
-            var item = "";
-            $.each(result, function (key, val) {
-                // debugger;
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url);
+        // set response format
+        xhr.responseType = 'json';
+        xhr.send();
+        xhr.onload = () => {
+            const result = xhr.response;
+
+            var list = document.createElement("ul");
+            list.className = "subTree"
+            result.forEach((val) => {
                 var isHidden = val.hasChildren ? "" : "hidden";
-                item += '<li>' +
-                    '<div class="exp"><a href="#" class="btnDir" data-loaded="0" data-path="' + val.dirPath + '" ' + isHidden + '>' +
+                var htmldata = '<li>' +
+                    '<div class="exp"><a href="javascript:void(0);"  onclick="QNZ.expFloders(this)" class="btnDir" data-loaded="0" data-path="' + val.dirPath + '" ' + isHidden + '>' +
                     '<span class="iconfont icon-plus fa-fw"></span>' +
                     '</a></div>' +
                     '<a href="#" class="btnFile" data-path="' + val.dirPath + '"><span class="iconfont icon-folder-fill"></span>' + val.name + '</a>' +
                     '</li>';
 
+                list.innerHTML += htmldata;
             });
 
-            $('<ul/>', { html: item }).addClass("subTree").appendTo(li);
+            li.append(list);
 
-            li.children(".exp").find("a").attr("data-loaded", "1").find("span").removeClass("icon-plus").addClass("icon-minus");
+            //var exp = li.firstElementChild;
+            var alink = li.children[0].children[0];
+            alink.setAttribute("data-loaded", "1");
+            alink.children[0].className = "iconfont icon-minus";
 
-        });
+        }
+
+
     },
 
+    expFloders: function(e) {  //打开加载文件夹内容
+        // console.log(e.parentNode.parentNode);
+        let parentElment = e.parentNode.parentNode;
+
+        //  console.log(parent);
+        parentElment.className = parentElment.className == "plus" ? "minus" : "plus";
+
+        e.children[0].className = parentElment.className == "plus" ? "iconfont icon-plus" : "iconfont icon-minus";
+
+        var dir = e.getAttribute("data-path");
+        var isLoaded = e.getAttribute("data-loaded")
+
+        if (isLoaded === "0") {
+
+            var urlDir = "/qnzfinder/GetSubDirectories?dir=" + dir;
+            this.getSubDirectories(urlDir, parentElment);
+
+        }
+        // console.log(parentElment);
+    },
 
 
     //获取文件列表
@@ -583,49 +524,49 @@ var QNZ = {
 
 
     //打开当前的路径
-    loadCurrentURL:function(url) {
-        url = url;
-        var baseUrl = "/Uploads/";
+    //loadCurrentURL:function(url) {
+    //    url = url;
+    //    var baseUrl = "/Uploads/";
 
 
-        if (url.startsWith(baseUrl)) {
-            var dir = url.split("/");
-            var index = url.indexOf(dir[dir.length - 1]) - 1;
+    //    if (url.startsWith(baseUrl)) {
+    //        var dir = url.split("/");
+    //        var index = url.indexOf(dir[dir.length - 1]) - 1;
 
-            var subStr = url.substring(9, index);
-            var subDir = subStr.split("/");
-            var goDir = baseUrl;
-            for (var i = 0; i < subDir.length; i++) {
-                goDir = goDir + subDir[i];
-                goDir = goDir;
+    //        var subStr = url.substring(9, index);
+    //        var subDir = subStr.split("/");
+    //        var goDir = baseUrl;
+    //        for (var i = 0; i < subDir.length; i++) {
+    //            goDir = goDir + subDir[i];
+    //            goDir = goDir;
 
-                var li = $("a[data-path='" + goDir + "']").eq(0).closest("li");
+    //            var li = $("a[data-path='" + goDir + "']").eq(0).closest("li");
 
-                if (i < (subDir.length - 1)) {
+    //            if (i < (subDir.length - 1)) {
 
-                    var urlDir = "/qnzfinder/GetSubDirectories?dir=" + goDir;
-                    QNZ.getSubDirectories(urlDir, li);
-                    goDir = goDir + "/";
-                } else {
+    //                var urlDir = "/qnzfinder/GetSubDirectories?dir=" + goDir;
+    //                QNZ.getSubDirectories(urlDir, li);
+    //                goDir = goDir + "/";
+    //            } else {
 
-                    var urlDir = "/qnzfinder/GetSubFiles?dir=" + goDir;
+    //                var urlDir = "/qnzfinder/GetSubFiles?dir=" + goDir;
 
-                    QNZ.getFiles(urlDir);
-                    $("#btnRefresh").attr("data-dir", goDir);
+    //                QNZ.getFiles(urlDir);
+    //                $("#btnRefresh").attr("data-dir", goDir);
 
-                    setTimeout(function () {
-                        $("[data-path='" + goDir + "']").eq(1).addClass("active").children("span").removeClass("icon-folder-fill").addClass("icon-folder-open-fill");
-                        $("#fileList div[data-file='" + url + "']").addClass("active");
-                    }, 1000);
+    //                setTimeout(function () {
+    //                    $("[data-path='" + goDir + "']").eq(1).addClass("active").children("span").removeClass("icon-folder-fill").addClass("icon-folder-open-fill");
+    //                    $("#fileList div[data-file='" + url + "']").addClass("active");
+    //                }, 1000);
 
-                }
+    //            }
 
 
-            }
-            //alert(url.substring(9, index));
-        }
+    //        }
+    //        //alert(url.substring(9, index));
+    //    }
 
-    },
+    //},
 
     renameFile: function(oldpath, newpath, item) {
 
@@ -740,6 +681,32 @@ var QNZ = {
         window.open(this.baseUrl, "_blank", 'height=' + h + ',width=' + w + ',left=' + x + ',top=' + y);
     },
 
+    SingleCallPageInit: function () {
+
+        function selectImage(fileUrl) {
+            //  console.log(fileUrl);
+            window.opener.QNZ.elFinderCallback(fileUrl);
+            window.close();
+        }
+
+        $(function () {
+
+            $("body").delegate("#fileList .itembox .item", "dblclick", function (e) {
+                e.preventDefault();
+                var fileUrl = $(this).attr("data-file");
+                selectImage(fileUrl);
+
+            });
+
+
+            $("#selectImage").on("click", function () {
+                var fileUrl = $("#fileList .item.active").attr("data-file");
+                selectImage(fileUrl);
+            })
+        })
+    },
+
+
     FilePickerCallback: function (callback, value, meta) {
         // Provide file and text for the link dialog
         // if (meta.filetype == 'file') {
@@ -777,6 +744,35 @@ var QNZ = {
 
     },
 
+    ForTinymcePageInit: function () {
+
+        function selectImage(fileUrl) {
+            //  console.log(fileUrl);
+
+            window.parent.postMessage({
+                mceAction: 'FileSelected',
+                content: fileUrl
+            }, '*');
+
+            parent.tinymce.activeEditor.windowManager.close();
+        }
+        
+
+        $("body").delegate("#fileList .itembox .item", "dblclick", function (e) {
+            e.preventDefault();
+            var fileUrl = $(this).attr("data-file");
+            selectImage(fileUrl);
+
+        });
+
+
+        $("#selectImage").on("click", function () {
+            var fileUrl = $("#fileList .item.active").attr("data-file");
+            selectImage(fileUrl);
+        })       
+
+    },
+
     // 所有UI事件绑定
     AllUIEventsBind: function () {
 
@@ -801,53 +797,46 @@ var QNZ = {
 
 
 
-        //$("#btnUploadFiles").click(function (e) {
-        //    e.preventDefault();
-        //    uploadFiles("FileInput");
-
-        //});
-
-        //$("#btnUpload").on("click", function () {
-
-        //    if ($("#uploadFile").hasClass("show")) return;
-        //    $("#uploadFile").animate({ top: "50px" }, 600).addClass("show");
-
-        //});
-
-        //$("#btnClose").on("click", function () {
-        //    closeUploader();
-        //});
-
-
         $("body").delegate("#btnRoot", "click", function (e) {
             e.preventDefault();
-
             localStorage.clear();  // 清除最后路径
-
             QNZ.Initialize();
 
         });
 
-        $("body").delegate("a.btnDir", "click", function (e) {
-            //$(".btnDir").on("click", function (e) {
 
-            e.preventDefault();
-            var parent = $(this).closest('li');
-            parent.toggleClass('plus');
-            parent.toggleClass('minus');
-            $(this).children("span").removeClass("icon-minus").addClass("icon-plus");
+        //var btnDirs = document.getElementsByClassName("btnDir");
 
-            var dir = $(this).attr("data-path");
-            var isLoaded = $(this).attr("data-loaded")
-            if (isLoaded === "0") {
+        //var myFunction = function () {
+        //    var attribute = this.getAttribute("data-myattribute");
+        //     // alert(attribute);
+        //    alert("test");
+        //};
 
-                var urlDir = "/qnzfinder/GetSubDirectories?dir=" + dir;
-                QNZ.getSubDirectories(urlDir, parent);
-
-            }
+        //for (var i = 0; i < btnDirs.length; i++) {
+        //    btnDirs[i].addEventListener('click', myFunction, false);
+        //}
 
 
-        });
+        //$("body").delegate("a.btnDir", "click", function (e) {
+        //    //$(".btnDir").on("click", function (e) {
+
+        //    e.preventDefault();
+        //    var parent = $(this).closest('li');
+        //    parent.toggleClass('plus');
+        //    parent.toggleClass('minus');
+        //    $(this).children("span").removeClass("icon-minus").addClass("icon-plus");
+
+        //    var dir = $(this).attr("data-path");
+        //    var isLoaded = $(this).attr("data-loaded")
+        //    if (isLoaded === "0") {
+
+        //        var urlDir = "/qnzfinder/GetSubDirectories?dir=" + dir;
+        //        QNZ.getSubDirectories(urlDir, parent);
+
+        //    }
+
+        //});
 
         $("body").delegate("a.btnFile", "click", function (e) {
 
@@ -1020,6 +1009,26 @@ var QNZ = {
 
 };
 
+//function expFloders(e) {
+//   // console.log(e.parentNode.parentNode);
+//    let parentElment = e.parentNode.parentNode;
+  
+//    //  console.log(parent);
+//    parentElment.className = parentElment.className == "plus" ? "minus" : "plus";
+
+//    e.children[0].className = parentElment.className == "plus" ? "iconfont icon-plus" :"iconfont icon-minus";
+
+//    var dir = e.getAttribute("data-path");
+//    var isLoaded = e.getAttribute("data-loaded")
+ 
+//    if (isLoaded === "0") {
+
+//        var urlDir = "/qnzfinder/GetSubDirectories?dir=" + dir;
+//        QNZ.getSubDirectories(urlDir, parentElment);
+
+//    }
+//    // console.log(parentElment);
+//}
 
 
 //$(function () {

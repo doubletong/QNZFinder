@@ -4,7 +4,13 @@
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%; }
+  height: 100%;
+  font-family: "Microsoft YaHei", "Helvetica Neue", "Helvetica", "Arial", sans-serif; }
+
+a {
+  text-decoration: none; }
+  a:hover {
+    text-decoration: none; }
 
 .container-media {
   border: 1px #ddd solid;
@@ -20,11 +26,11 @@ html, body {
       padding: 15px;
       position: relative;
       height: 548px;
-      overflow-y: auto; }
+      overflow-y: auto;
+      overflow-x: hidden; }
   .container-media #filecol {
     height: 100%;
-    position: relative;
-    overflow: hidden; }
+    position: relative; }
     .container-media #filecol .qnz-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -219,7 +225,8 @@ html, body {
 
 .context-menu__item {
   display: block;
-  margin-bottom: 4px; }
+  margin-bottom: 4px;
+  font-size: 14px; }
 
 .context-menu__item:last-child {
   margin-bottom: 0; }

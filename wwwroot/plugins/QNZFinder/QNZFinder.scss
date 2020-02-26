@@ -7,7 +7,13 @@ html, body {
     height: 100%;
     font-family: "Microsoft YaHei", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
 }
+a {
+    text-decoration: none;
 
+    &:hover {
+        text-decoration: none;
+    }
+}
 .container-media {
     border: 1px #ddd solid;
     position: relative;
@@ -28,6 +34,7 @@ html, body {
             position: relative;
             height: 548px;
             overflow-y: auto;
+            overflow-x:hidden;
         }
     }
 
@@ -318,6 +325,7 @@ html, body {
 .context-menu__item {
   display: block;
   margin-bottom: 4px;
+  font-size:14px;
 }
 
 .context-menu__item:last-child {
